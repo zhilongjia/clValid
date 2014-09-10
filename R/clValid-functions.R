@@ -10,9 +10,31 @@ if(getRversion() >= "2.15.1")  globalVariables(c("biocLite"))
 clValid <- function(obj, nClust, clMethods="hierarchical", validation="stability", maxitems=600,
                     metric="euclidean", method="average", neighbSize=10,
                     annotation=NULL, GOcategory="all", goTermFreq=0.05,
-                    dropEvidence=NULL, verbose=FALSE, ...) {
+                    dropEvidence=NULL, verbose=FALSE, ncore=8,...) {
 
-
+  #########################
+  #only for test
+  require(clValid)
+  data(mouse)
+  express <- mouse[1:25,c("M1","M2","M3","NC1","NC2","NC3")]
+  rownames(express) <- mouse$ID[1:25]
+  obj=express
+  nClust = 2:4
+  ncore=2
+  dropEvidence=NULL
+  verbose=FALSE
+  clMethods=c("hierarchical","kmeans","pam")
+  validation="biological"
+  metric="euclidean"
+  method="average"
+  GOcategory="all"
+  neighbSize=10
+  fc <- tapply(rownames(express),mouse$FC[1:25], c)
+  fc <- fc[-match( c("EST","Unknown"), names(fc))]
+  annotation=fc
+#   bio <- clValid(express, 2:6, clMethods=c("hierarchical","kmeans","pam"),
+#                  validation="biological", annotation=fc)
+  #########################
 
   clMethods <- tolower(clMethods)
   clMethods <- match.arg(clMethods,c("hierarchical","kmeans","diana","fanny","som","model","sota","pam","clara","agnes"), several.ok=TRUE)
@@ -96,9 +118,12 @@ these can be downloaded from Bioconductor (www.bioconductor.org)")
     stop("argument 'nClust' must be a positive integer vector")
 
   if(metric=="correlation")
-    Dist <- as.dist(1-cor(t(mat), use="pairwise.complete.obs"))  else
-  Dist <- dist(mat,method=metric)
-
+    Distmat <- as.dist(1-cor(t(mat), use="pairwise.complete.obs"))  else {
+  ##################################################################
+  #parallel the dist using amap::Dist 
+  require(amap)
+  Distmat <- Dist(mat,method=metric, ncore)}
+  ##################################################################
   clusterObjs <- vector("list",length(clMethods))
   names(clusterObjs) <- clMethods
 
@@ -107,17 +132,33 @@ these can be downloaded from Bioconductor (www.bioconductor.org)")
                 if("biological"%in%validation) c("BHI","BSI"))
   validMeasures <- array(dim=c(length(measures),length(nClust),length(clMethods)))
   dimnames(validMeasures) <- list(measures,nClust,clMethods)
-
-  for (i in 1:length(clMethods)) {
-
-    cvalid <- vClusters(mat,clMethods[i],nClust, validation=validation,
-                        Dist=Dist, method=method, metric=metric, annotation=annotation,
+  #####################################################
+  #parallel the cvalid in the original code
+  vClustersList <- clusterObjs
+  library(doMC)
+  registerDoMC(ncore)
+  vClustersList <- foreach(i = 1:length(clMethods)) %dopar% {
+                        cvalid <- vClusters(mat,clMethods[i],nClust, validation=validation,
+                        Dist=Distmat, method=method, metric=metric, annotation=annotation,
                         GOcategory=GOcategory, goTermFreq=goTermFreq, neighbSize=neighbSize,
-                        dropEvidence=dropEvidence, verbose=verbose, ...)
-    clusterObjs[[i]] <- cvalid$clusterObj
-    validMeasures[,,i] <- cvalid$measures
+                        dropEvidence=dropEvidence, verbose=verbose)
+    #dropEvidence=dropEvidence, verbose=verbose, ...)  
   }
-
+  names(vClustersList) <- clMethods
+  for (i in 1:length(clMethods)) {
+      clusterObjs[[i]] <- vClustersList[[i]]$clusterObj
+      validMeasures[,,i] <- vClustersList[[i]]$measures
+  }
+  #########################################################################
+# the original code
+#   for (i in 1:length(clMethods)) {
+#     cvalid <- vClusters(mat,clMethods[i],nClust, validation=validation,
+#                       Dist=Distmat, method=method, metric=metric, annotation=annotation,
+#                       GOcategory=GOcategory, goTermFreq=goTermFreq, neighbSize=neighbSize,
+#                       dropEvidence=dropEvidence, verbose=verbose)
+#     clusterObjs[[i]] <- cvalid$clusterObj
+#     validMeasures[,,i] <- cvalid$measures
+#   }
   if(is.null(rownames(mat))) {
     rownames(mat) <- 1:nrow(mat)
     warning("rownames for data not specified, using 1:nrow(data)")
@@ -871,4 +912,55 @@ getRanksWeights <- function(clVObj, measures=measNames(clVObj), nClust=nClusters
     weights[i,] <- sorted$x
   }
   list(ranks=ranks, weights=weights)
+}
+
+#############################################################################
+#Function for calculating the cor of matrix
+#copy from https://gist.github.com/bobthecat/5024079
+#bigcorPar
+############################################################################
+bigcorPar <- function(x, nblocks = 5, verbose = TRUE, ncore="all", ...){
+  library(ff, quietly = TRUE)
+  require(doMC)
+  if(ncore=="all"){
+    ncore = multicore:::detectCores()
+    registerDoMC(cores = ncore)
+  } else{
+    registerDoMC(cores = ncore)
+  }
+  
+  NCOL <- ncol(x)
+  
+  ## test if ncol(x) %% nblocks gives remainder 0
+  if (NCOL %% nblocks != 0){stop("Choose different 'nblocks' so that ncol(x) %% nblocks = 0!")}
+  
+  ## preallocate square matrix of dimension
+  ## ncol(x) in 'ff' single format
+  corMAT <- ff(vmode = "single", dim = c(NCOL, NCOL))
+  
+  ## split column numbers into 'nblocks' groups
+  SPLIT <- split(1:NCOL, rep(1:nblocks, each = NCOL/nblocks))
+  
+  ## create all unique combinations of blocks
+  COMBS <- expand.grid(1:length(SPLIT), 1:length(SPLIT))
+  COMBS <- t(apply(COMBS, 1, sort))
+  COMBS <- unique(COMBS)
+  
+  ## iterate through each block combination, calculate correlation matrix
+  ## between blocks and store them in the preallocated matrix on both
+  ## symmetric sides of the diagonal
+  results <- foreach(i = 1:nrow(COMBS)) %dopar% {
+    COMB <- COMBS[i, ]
+    G1 <- SPLIT[[COMB[1]]]
+    G2 <- SPLIT[[COMB[2]]]
+    if (verbose) cat("Block", COMB[1], "with Block", COMB[2], "\n")
+    flush.console()
+    COR <- cor(MAT[, G1], MAT[, G2], ...)
+    corMAT[G1, G2] <- COR
+    corMAT[G2, G1] <- t(COR)
+    COR <- NULL
+  }
+  
+  gc()
+  return(corMAT)
 }
