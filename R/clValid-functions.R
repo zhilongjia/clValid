@@ -12,29 +12,28 @@ clValid <- function(obj, nClust, clMethods="hierarchical", validation="stability
                     annotation=NULL, GOcategory="all", goTermFreq=0.05,
                     dropEvidence=NULL, verbose=FALSE, ncore=8,...) {
 
-  #########################
-  #only for test
-  require(clValid)
-  data(mouse)
-  express <- mouse[1:25,c("M1","M2","M3","NC1","NC2","NC3")]
-  rownames(express) <- mouse$ID[1:25]
-  obj=express
-  nClust = 2:4
-  ncore=2
-  dropEvidence=NULL
-  verbose=FALSE
-  clMethods=c("hierarchical","kmeans","pam")
-  validation="biological"
-  metric="euclidean"
-  method="average"
-  GOcategory="all"
-  neighbSize=10
-  fc <- tapply(rownames(express),mouse$FC[1:25], c)
-  fc <- fc[-match( c("EST","Unknown"), names(fc))]
-  annotation=fc
-#   bio <- clValid(express, 2:6, clMethods=c("hierarchical","kmeans","pam"),
-#                  validation="biological", annotation=fc)
-  #########################
+  ###########################################################
+#   #only for test
+#   require(clValid)
+#   data(mouse)
+#   express <- mouse[1:25,c("M1","M2","M3","NC1","NC2","NC3")]
+#   rownames(express) <- mouse$ID[1:25]
+#   obj=express
+#   nClust = 2:4
+#   ncore=2
+#   goTermFreq=0.05
+#   dropEvidence=NULL
+#   verbose=FALSE
+#   clMethods=c("hierarchical","kmeans","pam")
+#   validation="biological"
+#   metric="euclidean"
+#   method="average"
+#   GOcategory="all"
+#   neighbSize=10
+#   fc <- tapply(rownames(express),mouse$FC[1:25], c)
+#   fc <- fc[-match( c("EST","Unknown"), names(fc))]
+#   annotation=fc
+  ####################################################
 
   clMethods <- tolower(clMethods)
   clMethods <- match.arg(clMethods,c("hierarchical","kmeans","diana","fanny","som","model","sota","pam","clara","agnes"), several.ok=TRUE)
