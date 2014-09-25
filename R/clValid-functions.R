@@ -7,7 +7,7 @@ if(getRversion() >= "2.15.1")  globalVariables(c("biocLite"))
 ## clValid Functions
 #####################################################################################
 
-clValid <- function(obj, nClust, clMethods="hierarchical", validation="stability", maxitems=600,
+clValid <- function(obj, nClust, clMethods="hierarchical", validation="stability", maxitems=100000,
                     metric="euclidean", method="average", neighbSize=10,
                     annotation=NULL, GOcategory="all", goTermFreq=0.05,
                     dropEvidence=NULL, verbose=FALSE, ncore=8,...) {
@@ -66,19 +66,19 @@ clValid <- function(obj, nClust, clMethods="hierarchical", validation="stability
          ##         dist = Dist <- obj,
          stop("argument 'obj' must be a matrix, data.frame, or ExpressionSet object"))
 
-  if (nrow(mat)>maxitems) {
-    if (interactive()) {
-      cat("\nThe number of items to be clustered is larger than 'maxitems'\n")
-      cat("The memory and time required may be excessive, do you wish to continue?\n")
-      cat("(y to continue, any other character to exit) ")
-      ans <- tolower(substr(readLines(n=1),1,1))
-      if (ans!="y") {
-        stop("Exiting clValid, number of items exceeds 'maxitems'")
-      }
-    } else {
-      stop("The number of items to be clustered is larger than 'maxitems'\n  Either decrease the number of rows (items) or increase 'maxitems'\n")
-    }
-  }
+#  if (nrow(mat)>maxitems) {
+#    if (interactive()) {
+#      cat("\nThe number of items to be clustered is larger than 'maxitems'\n")
+#      cat("The memory and time required may be excessive, do you wish to continue?\n")
+#      cat("(y to continue, any other character to exit) ")
+#      ans <- tolower(substr(readLines(n=1),1,1))
+#      if (ans!="y") {
+#        stop("Exiting clValid, number of items exceeds 'maxitems'")
+#      }
+#    } else {
+#      stop("The number of items to be clustered is larger than 'maxitems'\n  Either decrease the number of rows (items) or increase 'maxitems'\n")
+#    }
+#  }
 
 
   if ("clara"%in%clMethods & metric=="correlation")
@@ -132,22 +132,15 @@ these can be downloaded from Bioconductor (www.bioconductor.org)")
   validMeasures <- array(dim=c(length(measures),length(nClust),length(clMethods)))
   dimnames(validMeasures) <- list(measures,nClust,clMethods)
   #####################################################
-  #parallel the cvalid in the original code
-  vClustersList <- clusterObjs
-  library(doMC)
-  registerDoMC(ncore)
-  vClustersList <- foreach(i = 1:length(clMethods)) %dopar% {
-                        cvalid <- vClusters(mat,clMethods[i],nClust, validation=validation,
-                        Dist=Distmat, method=method, metric=metric, annotation=annotation,
-                        GOcategory=GOcategory, goTermFreq=goTermFreq, neighbSize=neighbSize,
-                        dropEvidence=dropEvidence, verbose=verbose)
-    #dropEvidence=dropEvidence, verbose=verbose, ...)  
-  }
-  names(vClustersList) <- clMethods
   for (i in 1:length(clMethods)) {
-      clusterObjs[[i]] <- vClustersList[[i]]$clusterObj
-      validMeasures[,,i] <- vClustersList[[i]]$measures
-  }
+        cvalid <- vClusters(mat,clMethods[i],nClust, validation=validation,
+                  Dist=Distmat, method=method, metric=metric, annotation=annotation,
+                  GOcategory=GOcategory, goTermFreq=goTermFreq, neighbSize=neighbSize,
+                  dropEvidence=dropEvidence, ncore=length(nClust), verbose=verbose, ...)
+    #dropEvidence=dropEvidence, verbose=verbose, ...)  
+   clusterObjs[[i]] <- cvalid$clusterObj
+   validMeasures[,,i] <- cvalid$measures  
+   }
   #########################################################################
 # the original code
 #   for (i in 1:length(clMethods)) {
