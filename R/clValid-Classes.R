@@ -4,8 +4,8 @@
 
 setClassUnion("numeric or NULL", c("numeric", "NULL"))
 setClassUnion("array or NULL", c("array", "NULL"))
-setClassUnion("character or array or list or NULL or logical",
-              c("character","array","list","NULL","logical"))
+#setClassUnion("character or array or list or logical", c("character","array","list","logical"))
+setClassUnion("character or array or list or NULL or logical", c("character","array","list","NULL","logical"))
 setClass("clValid",representation(clusterObjs="list",measures="array",
                                   measNames="character",clMethods="character",
                                   labels="character",

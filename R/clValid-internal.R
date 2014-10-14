@@ -27,28 +27,28 @@ vClusters <- function(mat,clMethod,nClust,nclustMax, validation,
                       goTermFreq, neighbSize, dropEvidence, ncore, verbose, ... ) {
   ###########################################################
   #   #only for test
-    require(clValid)
-    data(mouse)
-    express <- mouse[1:25,c("M1","M2","M3","NC1","NC2","NC3")]
-    rownames(express) <- mouse$ID[1:25]
-    obj=express
-    mat=as.matrix(obj)
-    nClust = 2:4
-    nclustMax = max(nClust)
-    ncore=2
-    goTermFreq=0.05
-    dropEvidence=NULL
-    verbose=FALSE
-    clMethods=c("hierarchical","kmeans","pam")
-    clMethod = clMethods[2]
-    validation="biological"
-    metric="euclidean"
-    method="average"
-    GOcategory="all"
-    neighbSize=10
-    fc <- tapply(rownames(express),mouse$FC[1:25], c)
-    fc <- fc[-match( c("EST","Unknown"), names(fc))]
-    annotation=annotationListToMatrix(fc,rownames(express))
+#    require(clValid)
+#    data(mouse)
+#    express <- mouse[1:25,c("M1","M2","M3","NC1","NC2","NC3")]
+#    rownames(express) <- mouse$ID[1:25]
+#    obj=express
+#    mat=as.matrix(obj)
+#    nClust = 2:4
+#    nclustMax = max(nClust)
+#    ncore=2
+#    goTermFreq=0.05
+#    dropEvidence=NULL
+#    verbose=FALSE
+#    clMethods=c("hierarchical","kmeans","pam")
+#    clMethod = clMethods[2]
+#    validation="biological"
+#    metric="euclidean"
+#    method="average"
+#    GOcategory="all"
+#    neighbSize=10
+#    fc <- tapply(rownames(express),mouse$FC[1:25], c)
+#    fc <- fc[-match( c("EST","Unknown"), names(fc))]
+#    annotation=annotationListToMatrix(fc,rownames(express))
   ####################################################
   measNames <- c(if("stability"%in%validation) c("APN","AD","ADM","FOM"),
                  if("internal"%in%validation) c("Connectivity","Dunn","Silhouette"),
@@ -61,8 +61,8 @@ vClusters <- function(mat,clMethod,nClust,nclustMax, validation,
            clusterObj <- hclust(Distmat,method)
          },
          diana = {
-           clusterObj <- diana(Distmat)
-           #clusterObj <- diana(Distmat, ...)
+           #clusterObj <- diana(Distmat)
+           clusterObj <- diana(Distmat, ...)
          },
          kmeans = {
            clusterObj <- vector("list",length=length(nClust))
@@ -70,8 +70,8 @@ vClusters <- function(mat,clMethod,nClust,nclustMax, validation,
            clusterObjInit <- hclust(Distmat,method)
          },
          agnes = {
-           clusterObj <- agnes(Distmat, method=method)
-           #clusterObj <- agnes(Distmat, method=method, ...)
+           #clusterObj <- agnes(Distmat, method=method)
+           clusterObj <- agnes(Distmat, method=method, ...)
          },
          ## otherwise - sota, fanny, som, model, pam, clara
          { clusterObj <- vector("list",length=length(nClust))
@@ -98,33 +98,33 @@ vClusters <- function(mat,clMethod,nClust,nclustMax, validation,
                  initial[dupi,] <- initial[dupi,] + jitter(initial[dupi,])
              }
              dimnames(initial) <- list(NULL,dimnames(mat)[[2]])
-             clusterObj <- kmeans(mat,initial)
-             #clusterObj <- kmeans(mat,initial,...)
+             #clusterObj <- kmeans(mat,initial)
+             clusterObj <- kmeans(mat,initial,...)
              cluster <- clusterObj$cluster
            },
            fanny = {
-             clusterObj <- fanny(Distmat, nc)
-             #clusterObj <- fanny(Distmat, nc, ...)
+             #clusterObj <- fanny(Distmat, nc)
+             clusterObj <- fanny(Distmat, nc, ...)
              cluster <- clusterObj$clustering
            },
            model = {
-             clusterObj <- Mclust(mat,nc)
-             #clusterObj <- Mclust(mat,nc, ...)
+             #clusterObj <- Mclust(mat,nc)
+             clusterObj <- Mclust(mat,nc, ...)
              cluster <- clusterObj$classification
            },
            som = {
-             clusterObj <- som(mat, grid=somgrid(1,nc))
-             #clusterObj <- som(mat, grid=somgrid(1,nc), ...)
+             #clusterObj <- som(mat, grid=somgrid(1,nc))
+             clusterObj <- som(mat, grid=somgrid(1,nc), ...)
              cluster <- clusterObj$unit.classif
            },
            pam = {
-             clusterObj <- pam(Distmat, nc)
-             #clusterObj <- pam(Distmat, nc, ...)
+             #clusterObj <- pam(Distmat, nc)
+             clusterObj <- pam(Distmat, nc, ...)
              cluster <- clusterObj$clustering
            },
            clara = {
-             clusterObj <- clara(mat, nc, metric=ifelse(metric=="correlation","euclidean",metric))
-             #clusterObj <- clara(mat, nc, metric=ifelse(metric=="correlation","euclidean",metric), ...)
+             #clusterObj <- clara(mat, nc, metric=ifelse(metric=="correlation","euclidean",metric))
+             clusterObj <- clara(mat, nc, metric=ifelse(metric=="correlation","euclidean",metric), ...)
              cluster <- clusterObj$clustering
            },
            sota = {
@@ -137,6 +137,7 @@ vClusters <- function(mat,clMethod,nClust,nclustMax, validation,
     if(length(table(cluster))!=nc) {
       warning(paste(clMethod, "unable to find",nc,"clusters, returning NA for these validation measures"))
       measures <- NA
+      return (list(clusterObj=clusterObj, measures=measures))
       #ind <- ind+1
       #next()
     }
@@ -169,14 +170,14 @@ vClusters <- function(mat,clMethod,nClust,nclustMax, validation,
         switch(clMethod,
                hierarchical = clusterObjDel <- hclust(DistDel,method),
                kmeans = clusterObjInitDel <- hclust(DistDel,method),
-               #diana = clusterObjDel <- diana(DistDel, ...),
-               #agnes = clusterObjDel <- agnes(DistDel, method=method, ...),
-               #clara = clusterObjDel <- clara(matDel,nc,metric=ifelse(metric=="correlation","euclidean",metric), ...)
-               diana = clusterObjDel <- diana(DistDel),
-               agnes = clusterObjDel <- agnes(DistDel, method=method),
-               clara = clusterObjDel <- clara(matDel,nc,metric=ifelse(metric=="correlation","euclidean",metric)))
+               diana = clusterObjDel <- diana(DistDel, ...),
+               agnes = clusterObjDel <- agnes(DistDel, method=method, ...),
+               clara = clusterObjDel <- clara(matDel,nc,metric=ifelse(metric=="correlation","euclidean",metric), ...))
+               #diana = clusterObjDel <- diana(DistDel),
+               #agnes = clusterObjDel <- agnes(DistDel, method=method),
+               #clara = clusterObjDel <- clara(matDel,nc,metric=ifelse(metric=="correlation","euclidean",metric)))
 
-
+        
         switch(clMethod,
                kmeans = {
                  initialDel <- tapply(matDel, list(rep(cutree(clusterObjInitDel,nc),
@@ -187,27 +188,27 @@ vClusters <- function(mat,clMethod,nClust,nclustMax, validation,
                      initialDel[dupi,] <- initialDel[dupi,] + jitter(initialDel[dupi,])
                  }
                  dimnames(initialDel) <- list(NULL,dimnames(matDel)[[2]])
-                 kmdel <- kmeans(matDel,initialDel)
-                 #kmdel <- kmeans(matDel,initialDel, ...)
+                 #kmdel <- kmeans(matDel,initialDel)
+                 kmdel <- kmeans(matDel,initialDel, ...)
                  clusterDel <- kmdel$cluster
                },
                fanny = {
-                 hfdel <- fanny(DistDel, nc)
-                 #hfdel <- fanny(DistDel, nc, ...)
+                 #hfdel <- fanny(DistDel, nc)
+                 hfdel <- fanny(DistDel, nc, ...)
                  clusterDel <- hfdel$clustering
                },
                model = {
-                 clusterDel <- Mclust(matDel,nc)$classification
-                 #clusterDel <- Mclust(matDel,nc, ...)$classification
+                 #clusterDel <- Mclust(matDel,nc)$classification
+                 clusterDel <- Mclust(matDel,nc, ...)$classification
                },
                som = {
-                 hsdel <- try(som(matDel, grid=somgrid(1,nc)))
-                 #hsdel <- try(som(matDel, grid=somgrid(1,nc), ...))
+                 #hsdel <- try(som(matDel, grid=somgrid(1,nc)))
+                 hsdel <- try(som(matDel, grid=somgrid(1,nc), ...))
                  clusterDel <- hsdel$unit.classif
                },
                pam = {
-                 clusterDel <- pam(DistDel, nc, cluster.only=TRUE)
-                 #clusterDel <- pam(DistDel, nc, cluster.only=TRUE, ...)
+                 #clusterDel <- pam(DistDel, nc, cluster.only=TRUE)
+                 clusterDel <- pam(DistDel, nc, cluster.only=TRUE, ...)
                },
                clara = {
                  clusterDel <- clusterObjDel$clustering
@@ -225,10 +226,15 @@ vClusters <- function(mat,clMethod,nClust,nclustMax, validation,
           measures["ADM"] <- measures["ADM"] + stabmeas["ADM"]
           measures["FOM"] <- measures["FOM"] + stabmeas["FOM"]
         }
+
         if("biological"%in%validation) {
+
+          #if (verbose) {print (paste(annotation, "@@"))}
           tmp <- BSI(cluster,clusterDel,annotation=annotation,
                      names=rownames(mat), category=GOcategory, goTermFreq=goTermFreq,
                      dropEvidence=dropEvidence)
+
+          #if (verbose) {print ("END stability validation measures")}
           measures["BSI"] <- measures["BSI"] + tmp
         }
         ## VERBOSE printing
@@ -283,8 +289,19 @@ vClusters <- function(mat,clMethod,nClust,nclustMax, validation,
   rownames(measuresComb) <- measNames
   colnames(measuresComb) <- nClust
   for (j in seq(length(clusterList))){
-    clusterObj[[j]] <- clusterList[[j]]$clusterObj  
-    measuresComb[,j] <- clusterList[[j]]$measures} 
+    if (clMethod %in% c("hierarchical", "diana", "agnes")) {
+  		if (j==1){
+  	clusterObj <- clusterList[[1]]$clusterObj}
+  } else {
+    clusterObj[[j]] <- clusterList[[j]]$clusterObj}  
+    print("Start##############")
+    print (paste(length(clusterList), "@",j))
+    print (clusterList[[j]]$measures)
+    measuresComb[,j] <- clusterList[[j]]$measures
+   
+    print (measuresComb)
+    print ("END******************")
+} 
   list(clusterObj=clusterObj, measures=measuresComb)
 }
 

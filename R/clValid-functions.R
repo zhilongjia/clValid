@@ -139,7 +139,10 @@ these can be downloaded from Bioconductor (www.bioconductor.org)")
                   dropEvidence=dropEvidence, ncore=length(nClust), verbose=verbose, ...)
     #dropEvidence=dropEvidence, verbose=verbose, ...)  
    clusterObjs[[i]] <- cvalid$clusterObj
+   #print(cvalid)
    validMeasures[,,i] <- cvalid$measures  
+   
+   print(validMeasures)
    }
   #########################################################################
 # the original code
@@ -481,7 +484,7 @@ matchGO <- function(gg,category) {
 
 
 BSI <- function(statClust,statClustDel,annotation,names=NULL,category="all",
-                goTermFreq=0.05, dropEvidence=NULL) {
+                goTermFreq=0.05, dropEvidence=NULL, verbose=TRUE) {
 
   ## Case 1
   ## Biological clusters provided by user
@@ -542,7 +545,6 @@ BSI <- function(statClust,statClustDel,annotation,names=NULL,category="all",
   ## 1. extract all relevant GO terms for each gene (bp,cc, etc)
   ## 2. get freq table of terms - keep most frequent
   ## 3. create indicator matrix for each term indicating which genes have that term
-
   switch(category,
          ## x[1] is x$GOID, x[3] is x$Ontology
          BP = goIDs <- sapply(goTerms, function(a) sapply(a, function(x) x[1][x[3]=="BP"])),
@@ -551,6 +553,7 @@ BSI <- function(statClust,statClustDel,annotation,names=NULL,category="all",
          all = goIDs <- sapply(goTerms, function(a) sapply(a, function(x) x[1])))
 
   goTab <- table(unlist(goIDs))
+  #if (verbose) {print (goTab)}
   keepTerms <- names(goTab)[goTab>floor(n*goTermFreq)]
   termMat <- matrix(0,ncol=length(keepTerms),nrow=n)
   ## 09/27/09 - fixed issue by using unlist(x) in sapply
@@ -558,6 +561,7 @@ BSI <- function(statClust,statClustDel,annotation,names=NULL,category="all",
     termMat[,i] <- sapply(goIDs, function(x) keepTerms[i]%in%unlist(x))
   }
 
+  #if (verbose) {print ("GO")}
   bsi <- apply(termMat,2, function(a) {
     out <- outer(statClust[as.logical(a)],statClustDel[as.logical(a)], function(x,y) tab[cbind(x,y)]/rs[x])
     (sum(out) - sum(diag(out)))/(sum(a)*(ifelse(sum(a)>1,sum(a)-1,1)))
