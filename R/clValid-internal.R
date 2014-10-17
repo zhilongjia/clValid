@@ -99,7 +99,7 @@ vClusters <- function(mat,clMethod,nClust,nclustMax, validation,
              }
              dimnames(initial) <- list(NULL,dimnames(mat)[[2]])
              #clusterObj <- kmeans(mat,initial)
-             clusterObj <- kmeans(mat,initial,...)
+             clusterObj <- Kmeans(mat,initial,...)
              cluster <- clusterObj$cluster
            },
            fanny = {
