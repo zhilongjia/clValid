@@ -116,12 +116,12 @@ these can be downloaded from Bioconductor (www.bioconductor.org)")
   if (any(nClust<1))
     stop("argument 'nClust' must be a positive integer vector")
 
-  if(metric=="correlation")
-    Distmat <- as.dist(1-cor(t(mat), use="pairwise.complete.obs"))  else {
+#if(metric=="correlation")
+#   Distmat <- as.dist(1-cor(t(mat), use="pairwise.complete.obs"))  else {
   ##################################################################
   #parallel the dist using amap::Dist 
   require(amap)
-  Distmat <- Dist(mat,method=metric, ncore)}
+  Distmat <- Dist(mat,method=metric, ncore)#}
   ##################################################################
   clusterObjs <- vector("list",length(clMethods))
   names(clusterObjs) <- clMethods
